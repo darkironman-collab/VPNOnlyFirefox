@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.VPNOnlyFirefox" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#7C3AED</item>
+        <item name="colorPrimaryVariant">#5B21B6</item>
+        <item name="colorAccent">#A78BFA</item>
+        <item name="android:navigationBarColor">#120B24</item>
+        <item name="android:statusBarColor">#120B24</item>
+    </style>
+</resources>
