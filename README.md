@@ -34,6 +34,7 @@ before publishing reproducible production builds.
 - HTTP and HTTPS browsing (`usesCleartextTraffic=true`)
 - Any validated Android VPN is accepted
 - Address entry, back, forward, and reload
+- Installed VPN app chooser on the locked screen
 - Gecko session is destroyed when VPN disappears or the app goes to background
 - No history, bookmarks, downloads, permissions UI, or multiple tabs yet
 
