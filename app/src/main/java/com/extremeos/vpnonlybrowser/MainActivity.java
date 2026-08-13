@@ -6,7 +6,10 @@ import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.VpnService;
 import android.os.Bundle;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -19,10 +22,16 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoView;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class MainActivity extends AppCompatActivity {
     private static GeckoRuntime runtime;
@@ -121,6 +130,44 @@ public final class MainActivity extends AppCompatActivity {
         session.loadUri(uri);
     }
 
+    private void chooseVpnApp() {
+        PackageManager pm = getPackageManager();
+        Intent query = new Intent(VpnService.SERVICE_INTERFACE);
+        List<ResolveInfo> services = pm.queryIntentServices(query, PackageManager.MATCH_ALL);
+        Map<String, String> apps = new LinkedHashMap<>();
+        for (ResolveInfo info : services) {
+            if (info.serviceInfo == null) continue;
+            String packageName = info.serviceInfo.packageName;
+            CharSequence label = info.loadLabel(pm);
+            apps.put(packageName, label == null ? packageName : label.toString());
+        }
+
+        if (apps.isEmpty()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("No VPN apps found")
+                    .setMessage("Install a VPN app, or configure Android's built-in VPN settings.")
+                    .setPositiveButton("Open VPN settings", (dialog, which) ->
+                            startActivity(new Intent(Settings.ACTION_VPN_SETTINGS)))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return;
+        }
+
+        List<String> packages = new ArrayList<>(apps.keySet());
+        String[] labels = packages.stream().map(apps::get).toArray(String[]::new);
+        new AlertDialog.Builder(this)
+                .setTitle("Choose VPN app")
+                .setItems(labels, (dialog, which) -> {
+                    Intent launch = pm.getLaunchIntentForPackage(packages.get(which));
+                    if (launch != null) startActivity(launch);
+                    else startActivity(new Intent(Settings.ACTION_VPN_SETTINGS));
+                })
+                .setNeutralButton("VPN settings", (dialog, which) ->
+                        startActivity(new Intent(Settings.ACTION_VPN_SETTINGS)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void buildUi() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -166,9 +213,12 @@ public final class MainActivity extends AppCompatActivity {
         TextView title = text("VPN required", 28, Color.WHITE);
         TextView body = text("Internet access is locked. Connect any VPN, then this browser will unlock automatically.", 16, Color.LTGRAY);
         body.setGravity(Gravity.CENTER); body.setPadding(0, dp(14), 0, dp(20));
-        Button settingsButton = button("Open VPN settings");
+        Button chooseVpnButton = button("Choose VPN app");
+        chooseVpnButton.setOnClickListener(v -> chooseVpnApp());
+        Button settingsButton = button("Android VPN settings");
         settingsButton.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_VPN_SETTINGS)));
-        lockPanel.addView(title); lockPanel.addView(body); lockPanel.addView(settingsButton);
+        lockPanel.addView(title); lockPanel.addView(body);
+        lockPanel.addView(chooseVpnButton); lockPanel.addView(settingsButton);
         content.addView(lockPanel, match());
         root.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
